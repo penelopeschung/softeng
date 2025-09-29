@@ -6,60 +6,37 @@
   <title>Welcome — Quick Add</title>
   <style>
     :root{
-      --bg:#fafafa;
-      --text:#111827;
-      --muted:#6b7280;
-      --card:#ffffff;
-      --ring:#e5e7eb;
-      --shadow:0 10px 25px rgba(0,0,0,.06);
-      --radius:18px;
-      --pad:16px;
-      --brand:#0a66c2;
-      --tile1:#f8a5a1; /* pink */
-      --tile2:#f8c68c; /* peach */
-      --tile3:#f6e28b; /* yellow */
-      --tile4:#a8e2b1; /* green */
+      --bg:#fafafa; --text:#111827; --muted:#6b7280;
+      --card:#ffffff; --ring:#e5e7eb; --shadow:0 10px 25px rgba(0,0,0,.06);
+      --radius:18px; --brand:#0a66c2;
+      --tile1:#f8a5a1; --tile2:#f8c68c; --tile3:#f6e28b; --tile4:#a8e2b1;
     }
     *{box-sizing:border-box}
-    body{margin:0;background:var(--bg);color:var(--text);font:16px/1.6 system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif}
+    body{margin:0;background:var(--bg);color:var(--text);font:16px/1.6 system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif}
     .wrap{max-width:1200px;margin:32px auto;padding:0 20px}
-
-    /* Header */
     .title{font-size:clamp(28px,4.8vw,64px);font-weight:800;letter-spacing:.2px;margin:0 0 20px}
     .wave{font-size:clamp(24px,4vw,40px)}
-
-    /* Layout */
     .grid{display:grid;grid-template-columns:1.2fr .9fr;gap:28px}
     @media (max-width:980px){.grid{grid-template-columns:1fr}}
-
-    /* Left column (form) */
     .card{background:var(--card);border:1px solid var(--ring);border-radius:var(--radius);box-shadow:var(--shadow)}
     .field{padding:18px}
     .label{display:block;font-size:13px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);margin-bottom:8px}
     textarea{width:100%;min-height:80px;padding:14px;border-radius:12px;border:1px solid var(--ring);outline:none;font:inherit;background:#fff}
     textarea:focus{border-color:#c7d2fe;box-shadow:0 0 0 4px rgba(99,102,241,.12)}
-
-    /* Dismissible sections */
     .dismiss{position:relative;padding:16px 18px 12px;border-top:1px solid var(--ring)}
     .dismiss .x{position:absolute;right:12px;top:12px;width:28px;height:28px;border-radius:50%;display:grid;place-items:center;border:1px solid var(--ring);cursor:pointer}
     .dismiss .x:hover{background:#f3f4f6}
-
-    /* Checkbox grid */
-    .checks{display:grid;grid-template-columns:repeat(2, minmax(0,1fr));gap:10px 24px;margin-top:6px}
+    .checks{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px 24px;margin-top:6px}
     .check{display:flex;align-items:center;gap:10px}
     .check input{width:18px;height:18px}
-
-    /* Submit */
     .actions{padding:14px 18px 18px}
     .btn{background:#111827;color:#fff;border:none;border-radius:12px;padding:10px 16px;font-weight:600;cursor:pointer}
     .btn:hover{opacity:.92}
-
-    /* Right column (tiles) */
     .tiles{display:grid;grid-template-columns:1fr 1fr;gap:24px}
-    .tile{border-radius:26px;color:#111;margin:0;display:flex;align-items:flex-end;padding:24px;min-height:220px;box-shadow:var(--shadow);border:1px solid rgba(0,0,0,.03)}
+    a.tile-link{display:block;text-decoration:none;color:inherit}
+    .tile{border-radius:26px;color:#111;margin:0;display:flex;align-items:flex-end;padding:24px;min-height:220px;box-shadow:var(--shadow);border:1px solid rgba(0,0,0,.03);transition:transform .18s ease, box-shadow .18s ease}
     .tile h3{font-size:clamp(18px,2.6vw,36px);line-height:1.1;margin:0;font-weight:800}
-    .tile:hover{transform:translateY(-2px);transition:transform .18s ease}
-
+    .tile:hover{transform:translateY(-2px);box-shadow:0 14px 30px rgba(0,0,0,.10)}
     .muted{color:var(--muted)}
   </style>
 </head>
@@ -68,7 +45,7 @@
     <h1 class="title">Welcome, Nick <span class="wave">👋</span></h1>
 
     <div class="grid">
-      <!-- LEFT: Quick add form -->
+      <!-- Left: Quick Add form -->
       <form class="card" onsubmit="event.preventDefault(); alert('Submitted!');">
         <div class="field">
           <label class="label">Would you like to quick add today?</label>
@@ -102,31 +79,35 @@
         </div>
       </form>
 
-      <!-- RIGHT: Class tiles -->
+      <!-- Right: Class tiles -->
       <section class="tiles">
-        <article class="tile" style="background:var(--tile1)">
-          <h3>Intro<br>Physics<br>(Block 2)</h3>
-        </article>
-        <article class="tile" style="background:var(--tile2)">
-          <h3>Intro<br>Physics<br>(Block 4)</h3>
-        </article>
-        <article class="tile" style="background:var(--tile3)">
-          <h3>Modern<br>Physics<br>(Block 5)</h3>
-        </article>
-        <article class="tile" style="background:var(--tile4)">
-          <h3>Modern<br>Physics<br>(Block 6)</h3>
-        </article>
+        <a class="tile-link" href="class-block2.html">
+          <article class="tile" style="background:var(--tile1)">
+            <h3>Intro<br>Physics<br>(Block 2)</h3>
+          </article>
+        </a>
+        <a class="tile-link" href="class-block4.html">
+          <article class="tile" style="background:var(--tile2)">
+            <h3>Intro<br>Physics<br>(Block 4)</h3>
+          </article>
+        </a>
+        <a class="tile-link" href="class-block5.html">
+          <article class="tile" style="background:var(--tile3)">
+            <h3>Modern<br>Physics<br>(Block 5)</h3>
+          </article>
+        </a>
+        <a class="tile-link" href="class-block6.html">
+          <article class="tile" style="background:var(--tile4)">
+            <h3>Modern<br>Physics<br>(Block 6)</h3>
+          </article>
+        </a>
       </section>
     </div>
   </div>
 
   <script>
-    function clearClass(){
-      document.getElementById('classLabel').textContent = '—';
-    }
-    function clearStudents(){
-      document.querySelectorAll('.checks input[type="checkbox"]').forEach(cb=>cb.checked=false);
-    }
+    function clearClass(){ document.getElementById('classLabel').textContent='—'; }
+    function clearStudents(){ document.querySelectorAll('.checks input[type="checkbox"]').forEach(cb=>cb.checked=false); }
   </script>
 </body>
 </html>

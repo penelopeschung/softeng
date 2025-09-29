@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Intro Physics (Block 2)</title>
+  <style>
+    :root{ --bg:#fafafa; --text:#111827; --muted:#6b7280; --ring:#e5e7eb; }
+    *{box-sizing:border-box}
+    body{margin:0;background:var(--bg);color:var(--text);font:16px/1.6 system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif}
+    .wrap{max-width:960px;margin:40px auto;padding:0 20px}
+    h1{font-size:36px;font-weight:800;margin:0 0 8px}
+    .muted{color:var(--muted)}
+    .topbar{display:flex;justify-content:space-between;align-items:center;margin-bottom:24px}
+    a.back{color:#111827;text-decoration:none;border:1px solid var(--ring);padding:8px 12px;border-radius:10px}
+    .entry{margin:22px 0;padding-right:12px}
+    .date{font-weight:700;margin-bottom:6px}
+    .text{font-style:italic}
+    label{display:block;font-size:13px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);margin-top:16px}
+    select,button,textarea{font:inherit;border:1px solid var(--ring);border-radius:10px;padding:8px 10px}
+    textarea{width:100%;min-height:90px;background:#fff}
+    .actions{margin-top:10px}
+    .btn{background:#111827;color:#fff;border:none;cursor:pointer}
+    .btn:hover{opacity:.92}
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="topbar">
+      <div>
+        <h1>Intro Physics (Block 2)</h1>
+        <div class="muted">Class Log</div>
+      </div>
+      <a class="back" href="index.html">← Back</a>
+    </div>
+
+    <div class="entry">
+      <div class="date">September 18, 2025</div>
+      <div class="text">Barak recorded the data for the class. Really appreciate Barak and Angi’s helping cleaning up afterwards.</div>
+    </div>
+
+    <div class="entry">
+      <div class="date">September 12, 2025</div>
+      <div class="text">I was slightly frustrated by our slow start to the class, but was impressed that everyone was able to finish their lab reports. Barak helped others with the error analysis.</div>
+    </div>
+
+    <label for="student">Student</label>
+    <select id="student">
+      <option>Barak Yedidia</option><option>Wes Chao</option><option>Angi Chau</option>
+      <option>Jackee Bruno</option><option>Matthew Hesby</option><option>Jana Comstock</option>
+      <option>Liza Raynal</option><option>Claire Yeo</option><option>Patrick Berger</option>
+    </select>
+
+    <label for="note">Add Note</label>
+    <textarea id="note" placeholder="Write a quick note…"></textarea>
+
+    <div class="actions">
+      <button class="btn" onclick="alert('Saved (demo)');">Submit</button>
+    </div>
+  </div>
+</body>
+</html>
