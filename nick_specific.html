@@ -1,0 +1,586 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Quick Add — Single Page</title>
+  <style>
+    /* theme tokens: easy to tweak colors and radius */
+    :root{
+      --bg:#fafafa; --text:#111827; --muted:#6b7280;
+      --card:#ffffff; --ring:#e5e7eb; --shadow:0 10px 25px rgba(0,0,0,.06);
+      --radius:18px; --brand:#0a66c2; --accent:#6366f1;
+      --tile1:#f8a5a1; --tile2:#f8c68c; --tile3:#f6e28b; --tile4:#a8e2b1;
+      --danger:#dc2626; --ok:#059669;
+    }
+
+    /* reset-ish */
+    *{box-sizing:border-box}
+    body{margin:0;background:var(--bg);color:var(--text);font:16px/1.6 system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif}
+
+    /* page container */
+    .wrap{max-width:1200px;margin:32px auto;padding:0 20px}
+
+    /* header text */
+    .title{font-size:clamp(28px,4.8vw,64px);font-weight:800;margin:0 0 6px}
+    .subtitle{margin:0 0 22px;color:var(--muted)}
+    .wave{font-size:clamp(24px,4vw,40px)}
+
+    /* two-column layout on wide screens */
+    .grid{display:grid;grid-template-columns:1.25fr .95fr;gap:28px}
+    @media (max-width:980px){.grid{grid-template-columns:1fr}}
+
+    /* card wrapper */
+    .card{background:var(--card);border:1px solid var(--ring);border-radius:var(--radius);box-shadow:var(--shadow)}
+
+    /* card header */
+    .section-title{display:flex;align-items:center;justify-content:space-between;padding:16px 18px;border-bottom:1px solid var(--ring);gap:12px}
+    .section-title h2{margin:0;font-size:18px}
+
+    /* spacing helpers */
+    .field{padding:18px}
+    .row{display:flex;gap:12px;flex-wrap:wrap}
+
+    /* small label, accessible contrast */
+    .label{display:block;font-size:13px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);margin-bottom:6px}
+
+    /* inputs and textarea */
+    textarea,input,select{width:100%;padding:12px 14px;border-radius:12px;border:1px solid var(--ring);outline:none;font:inherit;background:#fff}
+    textarea{min-height:88px}
+    textarea:focus,input:focus,select:focus{border-color:#c7d2fe;box-shadow:0 0 0 4px rgba(99,102,241,.12)}
+
+    /* checkbox grid for rosters */
+    .checks{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px 18px;margin-top:6px}
+    .check{display:flex;align-items:center;gap:10px}
+
+    /* form actions */
+    .actions{padding:14px 18px 18px;display:flex;gap:10px;flex-wrap:wrap}
+
+    /* buttons */
+    .btn{background:#111827;color:#fff;border:none;border-radius:12px;padding:10px 16px;font-weight:600;cursor:pointer}
+    .btn:hover{opacity:.92}
+    .btn-outline{background:transparent;color:#111;border:1px solid var(--ring)}
+    .btn-danger{background:var(--danger)}
+    .btn-ok{background:var(--ok)}
+    .pill{display:inline-flex;align-items:center;gap:8px;border:1px solid var(--ring);padding:6px 10px;border-radius:999px}
+
+    /* class tiles */
+    .tiles{display:grid;grid-template-columns:1fr 1fr;gap:24px;padding:18px}
+    .tile-link{position:relative;display:block;text-decoration:none;color:inherit}
+    .tile{position:relative;border-radius:26px;color:#111;margin:0;display:flex;align-items:flex-end;padding:24px;min-height:160px;box-shadow:var(--shadow);border:1px solid rgba(0,0,0,.03);transition:transform .18s ease, box-shadow .18s ease}
+    .tile h3{font-size:clamp(18px,2.6vw,36px);line-height:1.1;margin:0;font-weight:800}
+    .tile small{display:block;color:#111a}
+    .tile:hover{transform:translateY(-2px);box-shadow:0 14px 30px rgba(0,0,0,.10)}
+    .tile-actions{position:absolute;top:10px;right:10px;display:flex;gap:8px}
+    .icon-btn{display:inline-grid;place-items:center;width:34px;height:34px;border-radius:10px;border:1px solid var(--ring);background:#fff;cursor:pointer}
+    .icon-btn:hover{background:#f3f4f6}
+
+    /* misc */
+    .muted{color:var(--muted)}
+    .hr{height:1px;background:var(--ring);margin:8px 0 16px}
+    .mini{font-size:12px;color:var(--muted)}
+    .mini.badge{background:#ecfdf5;border:1px solid #d1fae5;color:#065f46;border-radius:999px;padding:2px 8px;margin-left:8px}
+
+    /* router views: only one is visible */
+    .topbar{display:flex;justify-content:space-between;align-items:center;margin-bottom:24px}
+    .view{display:none;animation:fade .18s ease}
+    .view.active{display:block}
+    a.back{color:#111827;text-decoration:none;border:1px solid var(--ring);padding:8px 12px;border-radius:10px;background:#fff}
+
+    /* roster chips */
+    .chip{display:inline-flex;gap:8px;align-items:center;background:#f3f4f6;border:1px solid var(--ring);border-radius:999px;padding:6px 10px}
+
+    /* note item */
+    .entry{padding:14px 18px;border-top:1px dashed var(--ring)}
+    .entry .date{font-weight:700;margin-bottom:4px}
+
+    /* small entrance animation */
+    @keyframes fade{from{opacity:0;transform:translateY(4px)} to{opacity:1;transform:none}}
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <!-- app header: name + actions -->
+    <div class="flex-between" style="display:flex;align-items:center;justify-content:space-between;gap:10px">
+      <div>
+        <h1 class="title">Welcome, <span id="userName">Teacher</span> <span class="wave">👋</span></h1>
+        <p class="subtitle">📕 NarrativeNook, a web app by Colin C.</p>
+      </div>
+      <div class="flex" aria-label="profile actions" style="display:flex;gap:10px;align-items:center">
+        <button class="pill" id="editNameBtn" title="Edit your name">✏️ <span>Edit name</span></button>
+        <button class="pill" id="exportBtn" title="Export notes (CSV)">⬇️ <span>Export CSV</span></button>
+      </div>
+    </div>
+
+    <!-- dashboard view (default) -->
+    <div id="view-dashboard" class="view active">
+      <div class="grid" id="app">
+        <!-- left: quick add form -->
+        <form class="card" id="quickForm">
+          <div class="section-title">
+            <h2>Quick Add</h2>
+            <!-- gentle status text after save -->
+            <span class="mini" id="quickStatus" aria-live="polite"></span>
+          </div>
+
+          <div class="field">
+            <label class="label" for="quickNote">What would you like to add today?</label>
+            <textarea id="quickNote" placeholder="Observation, note, homework status, behavior, etc."></textarea>
+          </div>
+
+          <div class="field">
+            <label class="label" for="classSelect">Class</label>
+            <div class="row">
+              <select id="classSelect" aria-label="Choose class"></select>
+              <!-- scrolls to class tiles on the right -->
+              <button type="button" class="btn btn-outline" id="scrollToClasses">Classes</button>
+            </div>
+          </div>
+
+          <div class="field">
+            <span class="label">Student(s) in this class</span>
+            <!-- checkboxes populate from class roster -->
+            <div id="studentChecks" class="checks" aria-live="polite"></div>
+          </div>
+
+          <div class="actions">
+            <button class="btn" type="submit">Submit</button>
+            <button class="btn btn-outline" type="button" id="clearFormBtn">Clear</button>
+          </div>
+        </form>
+
+        <!-- right: class tiles (navigate + delete) -->
+        <section class="card" id="classesPanel">
+          <div class="section-title">
+            <h2>Classes</h2>
+            <button class="btn btn-outline" id="addClassBtn">+ New Class</button>
+          </div>
+          <div class="tiles" id="classTiles"></div>
+        </section>
+      </div>
+    </div>
+
+    <!-- class detail view -->
+    <div id="view-class" class="view">
+      <div class="topbar">
+        <div>
+          <h1 id="classTitle" style="font-size:36px;font-weight:800;margin:0 0 4px">Class</h1>
+          <div class="muted" id="subtitle">Class Page</div>
+        </div>
+        <!-- goes back without page reload -->
+        <a class="back" href="#/">← Back to Dashboard</a>
+      </div>
+
+      <!-- roster management -->
+      <section class="card">
+        <div class="section-title">
+          <h2>Roster</h2>
+          <div class="mini" id="rosterCount">0 students</div>
+        </div>
+        <!-- current roster as removable chips -->
+        <div class="field" id="rosterChips" style="display:flex;gap:8px;flex-wrap:wrap"></div>
+        <div class="field">
+          <label class="label" for="newStudent">Add Student</label>
+          <div class="row">
+            <input id="newStudent" placeholder="Full name" />
+            <button class="btn" id="addStudent">Add</button>
+          </div>
+          <p class="mini" style="margin-top:8px">Removing a student here removes them from this class only.</p>
+        </div>
+      </section>
+
+      <!-- add note for selected students -->
+      <section class="card">
+        <div class="section-title">
+          <h2>Add Note</h2>
+          <!-- gentle status text after save -->
+          <span class="mini" id="noteStatus" aria-live="polite"></span>
+        </div>
+        <div class="field">
+          <span class="label">Select Student(s)</span>
+          <!-- checkbox list (not a multi-select) -->
+          <div id="noteStudentChecks" class="checks" aria-live="polite"></div>
+
+          <label class="label" for="noteText" style="margin-top:12px">Note</label>
+          <textarea id="noteText" placeholder="Write a quick note…"></textarea>
+
+          <div class="row" style="margin-top:10px">
+            <button class="btn" id="saveNote">Submit</button>
+            <button class="btn btn-outline" id="clearNote">Clear</button>
+          </div>
+        </div>
+      </section>
+
+      <!-- recent notes for this class -->
+      <section class="card">
+        <div class="section-title">
+          <h2>Recent Notes</h2>
+          <button class="btn btn-outline" id="refresh">Refresh</button>
+        </div>
+        <div id="entries"></div>
+      </section>
+    </div>
+  </div>
+
+  <!-- class tile template (no roster preview) -->
+  <template id="tileTemplate">
+    <a class="tile-link" href="#">
+      <article class="tile">
+        <!-- top-right tile actions -->
+        <div class="tile-actions">
+          <button class="icon-btn" title="Delete class" data-delete>🗑</button>
+        </div>
+        <div>
+          <h3></h3>
+          <small class="muted rosterCount"></small>
+        </div>
+      </article>
+    </a>
+  </template>
+
+  <script>
+  // ===== simple store in localstorage =====
+  const STORE_KEY = 'quickAddStore.v1';
+  const defaultData = {
+    userName: 'Teacher',
+    classes: [
+      { id: cid(), name: 'Intro Physics', block: 'Block 2', color: 'var(--tile1)', roster: ['Barak Yedidia','Jana Comstock','Wes Chao'] },
+      { id: cid(), name: 'Intro Physics', block: 'Block 4', color: 'var(--tile2)', roster: ['Liza Raynal','Angi Chau','Claire Yeo'] },
+      { id: cid(), name: 'Modern Physics', block: 'Block 5', color: 'var(--tile3)', roster: ['Jackee Bruno','Patrick Berger'] },
+      { id: cid(), name: 'Modern Physics', block: 'Block 6', color: 'var(--tile4)', roster: ['Matthew Hesby'] },
+    ],
+    students: ['Barak Yedidia','Jana Comstock','Wes Chao','Liza Raynal','Angi Chau','Claire Yeo','Jackee Bruno','Patrick Berger','Matthew Hesby'],
+    quickAdds: [] // {id, ts, classId, students[], note}
+  };
+
+  // small helpers
+  function cid(){ return Math.random().toString(36).slice(2,10); } // makes a short id
+  function load(){ try{ return JSON.parse(localStorage.getItem(STORE_KEY)) || structuredClone(defaultData);}catch{ return structuredClone(defaultData);} }
+  function save(){ localStorage.setItem(STORE_KEY, JSON.stringify(state)); } // persist to localstorage
+  function escapeHtml(s){ return s.replace(/[&<>"']/g, m=>({"&":"&amp;","<":"&lt;","&gt;":"&gt;","\"":"&quot;","'":"&#39;"}[m])); } // basic xss guard
+  function fmtDate(ts){ return new Date(ts).toLocaleDateString(undefined,{year:'numeric',month:'long',day:'numeric'}); } // readable date
+
+  let state = load(); // load once
+
+  // ===== grab dom refs once =====
+  const userNameEl = document.getElementById('userName');
+  const editNameBtn = document.getElementById('editNameBtn');
+  const exportBtn = document.getElementById('exportBtn');
+
+  const dashboardView = document.getElementById('view-dashboard');
+  const classSelect = document.getElementById('classSelect');
+  const studentChecks = document.getElementById('studentChecks');
+  const quickForm = document.getElementById('quickForm');
+  const quickNote = document.getElementById('quickNote');
+  const quickStatus = document.getElementById('quickStatus');
+  const clearFormBtn = document.getElementById('clearFormBtn');
+  const addClassBtn = document.getElementById('addClassBtn');
+  const classTiles = document.getElementById('classTiles');
+  const tileTemplate = document.getElementById('tileTemplate');
+
+  const classView = document.getElementById('view-class');
+  const classTitle = document.getElementById('classTitle');
+  const subtitle = document.getElementById('subtitle');
+  const rosterChips = document.getElementById('rosterChips');
+  const rosterCount = document.getElementById('rosterCount');
+  const newStudent = document.getElementById('newStudent');
+  const addStudent = document.getElementById('addStudent');
+  const noteStudentChecks = document.getElementById('noteStudentChecks'); // where checkboxes go
+  const noteText = document.getElementById('noteText');
+  const saveNote = document.getElementById('saveNote');
+  const noteStatus = document.getElementById('noteStatus');
+  const clearNote = document.getElementById('clearNote');
+  const refresh = document.getElementById('refresh');
+  const entries = document.getElementById('entries');
+  const scrollToClasses = document.getElementById('scrollToClasses');
+
+  // ===== tiny hash router =====
+  function getRoute(){
+    const hash = location.hash || '#/';
+    const parts = hash.slice(2).split('/'); // after "#/"
+    if(parts[0] === '') return {name:'dashboard'};
+    if(parts[0] === 'class' && parts[1]) return {name:'class', id: parts[1]};
+    return {name:'dashboard'};
+  }
+
+  // show dashboard
+  function navigateToDashboard(){
+    dashboardView.classList.add('active');
+    classView.classList.remove('active');
+    renderDashboard();
+  }
+
+  // show class view
+  function navigateToClass(id){
+    const cls = state.classes.find(c=>c.id===id);
+    if(!cls){ location.hash = '#/'; return; }
+    dashboardView.classList.remove('active');
+    classView.classList.add('active');
+    renderClassView(cls);
+  }
+
+  // react to url changes
+  window.addEventListener('hashchange', ()=> {
+    const route = getRoute();
+    if(route.name==='dashboard') navigateToDashboard();
+    else if(route.name==='class') navigateToClass(route.id);
+  });
+
+  // ===== dashboard render =====
+  function renderDashboard(){
+    userNameEl.textContent = state.userName || 'Teacher';
+
+    // fill class dropdown
+    classSelect.innerHTML = '';
+    state.classes.forEach(c=> classSelect.add(new Option(`${c.name} (${c.block})`, c.id)));
+    if(!classSelect.value && state.classes[0]) classSelect.value = state.classes[0].id;
+
+    renderStudentChecks(); // checkboxes for the chosen class
+    renderTiles();         // class cards on the right
+  }
+
+  // get currently selected class (for quick add)
+  function currentClass(){ return state.classes.find(c=>c.id === classSelect.value) || state.classes[0]; }
+
+  // build student checkboxes for quick add form
+  function renderStudentChecks(){
+    const c = currentClass();
+    studentChecks.innerHTML = '';
+    if(!c){ studentChecks.innerHTML = '<div class="muted">Create a class to begin.</div>'; return; }
+    const names = [...(c.roster||[])].sort((a,b)=>a.localeCompare(b));
+    names.forEach(name=>{
+      const id = 's_' + name.replace(/\W+/g,'_');
+      const wrap = document.createElement('label');
+      wrap.className = 'check';
+      wrap.innerHTML = `<input type="checkbox" id="${id}"> <span>${escapeHtml(name)}</span>`;
+      studentChecks.appendChild(wrap);
+    });
+  }
+
+  // build class tiles (navigate + delete)
+  function renderTiles(){
+    classTiles.innerHTML = '';
+    state.classes.forEach((c)=>{
+      const node = tileTemplate.content.cloneNode(true);
+      const link = node.querySelector('.tile-link');
+      const tile = node.querySelector('.tile');
+      const h3 = node.querySelector('h3');
+      const count = node.querySelector('.rosterCount');
+      const delBtn = node.querySelector('[data-delete]');
+
+      tile.style.background = c.color || 'var(--tile1)';
+      h3.innerHTML = `${escapeHtml(c.name)}<br>${escapeHtml(c.block)}`;
+      count.textContent = `${c.roster?.length||0} student${(c.roster?.length||0)===1?'':'s'}`;
+
+      // in-page route
+      link.href = `#/class/${encodeURIComponent(c.id)}`;
+
+      // delete class (and its notes)
+      delBtn.addEventListener('click', (e)=>{
+        e.preventDefault(); e.stopPropagation();
+        if(confirm(`Delete class: ${c.name} (${c.block})?\nThis will also remove its notes.`)){
+          state.quickAdds = (state.quickAdds||[]).filter(n => n.classId !== c.id);
+          state.classes = state.classes.filter(x=>x.id!==c.id);
+          save();
+          renderDashboard();
+        }
+      });
+
+      classTiles.appendChild(node);
+    });
+  }
+
+  // ===== class view render =====
+  function renderClassView(cls){
+    classTitle.textContent = `${cls.name} (${cls.block})`;
+    subtitle.textContent = 'Class Page';
+    renderRoster(cls);
+    renderNoteStudentChecks(cls); // set up checkboxes for note
+    renderEntries(cls);
+  }
+
+  // show roster as chips with remove buttons
+  function renderRoster(cls){
+    rosterChips.innerHTML = '';
+    (cls.roster||[]).forEach(name=>{
+      const chip = document.createElement('span');
+      chip.className = 'chip';
+      chip.innerHTML = `${escapeHtml(name)} <button class="icon-btn" title="Remove ${escapeHtml(name)}">✕</button>`;
+      chip.querySelector('button').addEventListener('click', ()=>{
+        cls.roster = (cls.roster||[]).filter(n=>n!==name);
+        save();
+        renderRoster(cls);
+        renderNoteStudentChecks(cls);
+      });
+      rosterChips.appendChild(chip);
+    });
+    const count = cls.roster?.length || 0;
+    rosterCount.textContent = `${count} student${count===1?'':'s'}`;
+  }
+
+  // checkboxes for note selection (class view)
+  function renderNoteStudentChecks(cls){
+    noteStudentChecks.innerHTML = '';
+    (cls.roster||[]).slice().sort((a,b)=>a.localeCompare(b)).forEach(name=>{
+      const id = 'ns_' + name.replace(/\W+/g,'_');
+      const wrap = document.createElement('label');
+      wrap.className = 'check';
+      wrap.innerHTML = `<input type="checkbox" id="${id}" value="${escapeHtml(name)}"> <span>${escapeHtml(name)}</span>`;
+      noteStudentChecks.appendChild(wrap);
+    });
+  }
+
+  // list recent notes for this class
+  function renderEntries(cls){
+    entries.innerHTML = '';
+    const list = (state.quickAdds||[]).filter(e=>e.classId===cls.id).slice(0,25);
+    if(list.length===0){
+      entries.innerHTML = '<div class="field"><span class="mini">No notes yet.</span></div>';
+      return;
+    }
+    list.forEach(e=>{
+      const div = document.createElement('div');
+      div.className = 'entry';
+      const students = (e.students||[]).join(', ') || '—';
+      const note = e.note || '—';
+      div.innerHTML = `<div class="date">${fmtDate(e.ts)}</div><div>${escapeHtml(note)}</div><div class="mini" style="margin-top:4px">Students: ${escapeHtml(students)}</div>`;
+      entries.appendChild(div);
+    });
+  }
+
+  // ===== events (ui actions) =====
+
+  // rename the user
+  editNameBtn.addEventListener('click', ()=>{
+    const name = prompt('Enter your display name:', state.userName || '');
+    if(name!==null){ state.userName = name.trim() || 'Teacher'; userNameEl.textContent = state.userName; save(); }
+  });
+
+  // export notes as csv (for spreadsheets)
+  exportBtn.addEventListener('click', ()=>{
+    const rows = [];
+    rows.push(['timestamp','date','classId','className','block','students','note']);
+    (state.quickAdds||[]).forEach(e=>{
+      const cls = (state.classes||[]).find(c=>c.id===e.classId) || {};
+      rows.push([
+        e.ts,
+        new Date(e.ts).toISOString(),
+        e.classId || '',
+        cls.name || '',
+        cls.block || '',
+        (e.students||[]).join('; '),
+        e.note || ''
+      ]);
+    });
+    const csv = rows.map(r=>r.map(csvEscape).join(',')).join('\n');
+    const blob = new Blob([csv], {type:'text/csv;charset=utf-8;'});
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url; a.download = 'notes.csv'; a.click();
+    setTimeout(()=>URL.revokeObjectURL(url), 1000);
+  });
+
+  // escape csv fields safely
+  function csvEscape(v){
+    const s = String(v ?? '');
+    if (/[",\n]/.test(s)) return `"${s.replace(/"/g,'""')}"`;
+    return s;
+  }
+
+  // switch class in quick add
+  classSelect.addEventListener('change', renderStudentChecks);
+
+  // add a new class quickly
+  addClassBtn.addEventListener('click', ()=>{
+    const name = prompt('Class name (e.g., Intro Physics)'); if(!name) return;
+    const block = prompt('Block/Section (e.g., Block 4)') || '';
+    const colors = ['var(--tile1)','var(--tile2)','var(--tile3)','var(--tile4)'];
+    state.classes.push({ id: cid(), name: name.trim(), block: block.trim(), color: colors[state.classes.length%colors.length], roster: [] });
+    save();
+    renderDashboard();
+  });
+
+  // clear the quick add form
+  clearFormBtn.addEventListener('click', ()=>{
+    document.querySelectorAll('#studentChecks input[type="checkbox"]').forEach(cb=>cb.checked=false);
+    quickNote.value='';
+    quickStatus.textContent='';
+  });
+
+  // save quick note (no popup, just inline status)
+  quickForm.addEventListener('submit', (e)=>{
+    e.preventDefault();
+    const c = currentClass();
+    if(!c){ return; }
+    const chosen = Array.from(studentChecks.querySelectorAll('input:checked')).map(cb=>cb.nextElementSibling.textContent);
+    const note = quickNote.value.trim();
+    state.quickAdds.unshift({ id: cid(), ts: Date.now(), classId: c.id, students: chosen, note });
+    save();
+    quickNote.value='';
+    document.querySelectorAll('#studentChecks input[type="checkbox"]').forEach(cb=>cb.checked=false);
+    quickStatus.textContent = 'saved';
+    setTimeout(()=> quickStatus.textContent = '', 1500);
+  });
+
+  // add a student to this class (class view)
+  addStudent.addEventListener('click', ()=>{
+    const route = getRoute(); if(route.name!=='class') return;
+    const cls = state.classes.find(c=>c.id===route.id); if(!cls) return;
+    const val = newStudent.value.trim(); if(!val) return;
+    cls.roster = cls.roster || [];
+    if(!cls.roster.includes(val)) cls.roster.push(val);
+    state.students = state.students || [];
+    if(!state.students.includes(val)) state.students.push(val);
+    newStudent.value = '';
+    save();
+    renderRoster(cls);
+    renderNoteStudentChecks(cls);
+  });
+
+  // save class note (checkbox selection)
+  saveNote.addEventListener('click', ()=>{
+    const route = getRoute(); if(route.name!=='class') return;
+    const cls = state.classes.find(c=>c.id===route.id); if(!cls) return;
+    const chosen = Array.from(noteStudentChecks.querySelectorAll('input:checked')).map(cb=>cb.nextElementSibling.textContent);
+    const note = noteText.value.trim();
+    state.quickAdds.unshift({ id: cid(), ts: Date.now(), classId: cls.id, students: chosen, note });
+    save();
+    noteText.value = '';
+    noteStudentChecks.querySelectorAll('input[type="checkbox"]').forEach(cb=>cb.checked=false);
+    renderEntries(cls);
+    noteStatus.textContent = 'saved';
+    setTimeout(()=> noteStatus.textContent = '', 1500);
+  });
+
+  // clear class note form
+  clearNote.addEventListener('click', ()=>{
+    noteText.value='';
+    noteStudentChecks.querySelectorAll('input[type="checkbox"]').forEach(cb=>cb.checked=false);
+    noteStatus.textContent='';
+  });
+
+  // manual refresh of recent notes list
+  refresh.addEventListener('click', ()=>{
+    const route = getRoute();
+    if(route.name==='class'){
+      const cls = state.classes.find(c=>c.id===route.id);
+      if(cls) renderEntries(cls);
+    }
+  });
+
+  // scroll shortcut
+  scrollToClasses.addEventListener('click', ()=>{
+    document.getElementById('classesPanel').scrollIntoView({behavior:'smooth', block:'start'});
+  });
+
+  // ===== start the app =====
+  function routeNow(){
+    const route = getRoute();
+    if(route.name==='dashboard') navigateToDashboard();
+    else if(route.name==='class') navigateToClass(route.id);
+  }
+  userNameEl.textContent = state.userName || 'Teacher';
+  routeNow();
+  </script>
+</body>
+</html>

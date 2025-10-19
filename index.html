@@ -3,111 +3,241 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Welcome — Quick Add</title>
+  <title>Quick Add — Single Page</title>
   <style>
+    /* theme tokens: easy to tweak colors and radius */
     :root{
       --bg:#fafafa; --text:#111827; --muted:#6b7280;
       --card:#ffffff; --ring:#e5e7eb; --shadow:0 10px 25px rgba(0,0,0,.06);
-      --radius:18px; --brand:#0a66c2;
+      --radius:18px; --brand:#0a66c2; --accent:#6366f1;
       --tile1:#f8a5a1; --tile2:#f8c68c; --tile3:#f6e28b; --tile4:#a8e2b1;
+      --danger:#dc2626; --ok:#059669;
     }
+
+    /* reset-ish */
     *{box-sizing:border-box}
     body{margin:0;background:var(--bg);color:var(--text);font:16px/1.6 system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif}
+
+    /* page container */
     .wrap{max-width:1200px;margin:32px auto;padding:0 20px}
-    .title{font-size:clamp(28px,4.8vw,64px);font-weight:800;letter-spacing:.2px;margin:0 0 20px}
+
+    /* header text */
+    .title{font-size:clamp(28px,4.8vw,64px);font-weight:800;margin:0 0 6px}
+    .subtitle{margin:0 0 22px;color:var(--muted)}
     .wave{font-size:clamp(24px,4vw,40px)}
-    .grid{display:grid;grid-template-columns:1.2fr .9fr;gap:28px}
+
+    /* two-column layout on wide screens */
+    .grid{display:grid;grid-template-columns:1.25fr .95fr;gap:28px}
     @media (max-width:980px){.grid{grid-template-columns:1fr}}
+
+    /* card wrapper */
     .card{background:var(--card);border:1px solid var(--ring);border-radius:var(--radius);box-shadow:var(--shadow)}
+
+    /* card header */
+    .section-title{display:flex;align-items:center;justify-content:space-between;padding:16px 18px;border-bottom:1px solid var(--ring);gap:12px}
+    .section-title h2{margin:0;font-size:18px}
+
+    /* spacing helpers */
     .field{padding:18px}
-    .label{display:block;font-size:13px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);margin-bottom:8px}
-    textarea{width:100%;min-height:80px;padding:14px;border-radius:12px;border:1px solid var(--ring);outline:none;font:inherit;background:#fff}
-    textarea:focus{border-color:#c7d2fe;box-shadow:0 0 0 4px rgba(99,102,241,.12)}
-    .dismiss{position:relative;padding:16px 18px 12px;border-top:1px solid var(--ring)}
-    .dismiss .x{position:absolute;right:12px;top:12px;width:28px;height:28px;border-radius:50%;display:grid;place-items:center;border:1px solid var(--ring);cursor:pointer}
-    .dismiss .x:hover{background:#f3f4f6}
-    .checks{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px 24px;margin-top:6px}
+    .row{display:flex;gap:12px;flex-wrap:wrap}
+
+    /* small label, accessible contrast */
+    .label{display:block;font-size:13px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);margin-bottom:6px}
+
+    /* inputs and textarea */
+    textarea,input,select{width:100%;padding:12px 14px;border-radius:12px;border:1px solid var(--ring);outline:none;font:inherit;background:#fff}
+    textarea{min-height:88px}
+    textarea:focus,input:focus,select:focus{border-color:#c7d2fe;box-shadow:0 0 0 4px rgba(99,102,241,.12)}
+
+    /* checkbox grid for rosters */
+    .checks{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px 18px;margin-top:6px}
     .check{display:flex;align-items:center;gap:10px}
-    .check input{width:18px;height:18px}
-    .actions{padding:14px 18px 18px}
+
+    /* form actions */
+    .actions{padding:14px 18px 18px;display:flex;gap:10px;flex-wrap:wrap}
+
+    /* buttons */
     .btn{background:#111827;color:#fff;border:none;border-radius:12px;padding:10px 16px;font-weight:600;cursor:pointer}
     .btn:hover{opacity:.92}
-    .tiles{display:grid;grid-template-columns:1fr 1fr;gap:24px}
-    a.tile-link{display:block;text-decoration:none;color:inherit}
-    .tile{border-radius:26px;color:#111;margin:0;display:flex;align-items:flex-end;padding:24px;min-height:220px;box-shadow:var(--shadow);border:1px solid rgba(0,0,0,.03);transition:transform .18s ease, box-shadow .18s ease}
+    .btn-outline{background:transparent;color:#111;border:1px solid var(--ring)}
+    .btn-danger{background:var(--danger)}
+    .btn-ok{background:var(--ok)}
+    .pill{display:inline-flex;align-items:center;gap:8px;border:1px solid var(--ring);padding:6px 10px;border-radius:999px}
+
+    /* class tiles */
+    .tiles{display:grid;grid-template-columns:1fr 1fr;gap:24px;padding:18px}
+    .tile-link{position:relative;display:block;text-decoration:none;color:inherit}
+    .tile{position:relative;border-radius:26px;color:#111;margin:0;display:flex;align-items:flex-end;padding:24px;min-height:160px;box-shadow:var(--shadow);border:1px solid rgba(0,0,0,.03);transition:transform .18s ease, box-shadow .18s ease}
     .tile h3{font-size:clamp(18px,2.6vw,36px);line-height:1.1;margin:0;font-weight:800}
+    .tile small{display:block;color:#111a}
     .tile:hover{transform:translateY(-2px);box-shadow:0 14px 30px rgba(0,0,0,.10)}
+    .tile-actions{position:absolute;top:10px;right:10px;display:flex;gap:8px}
+    .icon-btn{display:inline-grid;place-items:center;width:34px;height:34px;border-radius:10px;border:1px solid var(--ring);background:#fff;cursor:pointer}
+    .icon-btn:hover{background:#f3f4f6}
+
+    /* misc */
     .muted{color:var(--muted)}
+    .hr{height:1px;background:var(--ring);margin:8px 0 16px}
+    .mini{font-size:12px;color:var(--muted)}
+    .mini.badge{background:#ecfdf5;border:1px solid #d1fae5;color:#065f46;border-radius:999px;padding:2px 8px;margin-left:8px}
+
+    /* router views: only one is visible */
+    .topbar{display:flex;justify-content:space-between;align-items:center;margin-bottom:24px}
+    .view{display:none;animation:fade .18s ease}
+    .view.active{display:block}
+    a.back{color:#111827;text-decoration:none;border:1px solid var(--ring);padding:8px 12px;border-radius:10px;background:#fff}
+
+    /* roster chips */
+    .chip{display:inline-flex;gap:8px;align-items:center;background:#f3f4f6;border:1px solid var(--ring);border-radius:999px;padding:6px 10px}
+
+    /* note item */
+    .entry{padding:14px 18px;border-top:1px dashed var(--ring)}
+    .entry .date{font-weight:700;margin-bottom:4px}
+
+    /* small entrance animation */
+    @keyframes fade{from{opacity:0;transform:translateY(4px)} to{opacity:1;transform:none}}
   </style>
 </head>
 <body>
   <div class="wrap">
-    <h1 class="title">Welcome, Nick <span class="wave">👋</span></h1>
+    <!-- app header: name + actions -->
+    <div class="flex-between" style="display:flex;align-items:center;justify-content:space-between;gap:10px">
+      <div>
+        <h1 class="title">Welcome, <span id="userName">Teacher</span> <span class="wave">👋</span></h1>
+        <p class="subtitle">📕 NarrativeNook, a web app by Colin C.</p>
+      </div>
+      <div class="flex" aria-label="profile actions" style="display:flex;gap:10px;align-items:center">
+        <button class="pill" id="editNameBtn" title="Edit your name">✏️ <span>Edit name</span></button>
+        <button class="pill" id="exportBtn" title="Export notes (CSV)">⬇️ <span>Export CSV</span></button>
+      </div>
+    </div>
 
-    <div class="grid">
-      <!-- Left: Quick Add form -->
-      <form class="card" onsubmit="event.preventDefault(); alert('Submitted!');">
-        <div class="field">
-          <label class="label">Would you like to quick add today?</label>
-          <textarea placeholder="Value"></textarea>
-        </div>
-
-        <div class="dismiss">
-          <span class="label">Class</span>
-          <div class="muted" id="classLabel">Intro Physics (Block 4)</div>
-          <button type="button" class="x" aria-label="clear class" onclick="clearClass()">✕</button>
-        </div>
-
-        <div class="dismiss">
-          <span class="label">Student(s)</span>
-          <div class="checks">
-            <label class="check"><input type="checkbox" checked> <span>Barak Yedidia</span></label>
-            <label class="check"><input type="checkbox"> <span>Jana Comstock</span></label>
-            <label class="check"><input type="checkbox"> <span>Wes Chao</span></label>
-            <label class="check"><input type="checkbox"> <span>Liza Raynal</span></label>
-            <label class="check"><input type="checkbox"> <span>Angi Chau</span></label>
-            <label class="check"><input type="checkbox"> <span>Claire Yeo</span></label>
-            <label class="check"><input type="checkbox"> <span>Jackee Bruno</span></label>
-            <label class="check"><input type="checkbox"> <span>Patrick Berger</span></label>
-            <label class="check"><input type="checkbox"> <span>Matthew Hesby</span></label>
+    <!-- dashboard view (default) -->
+    <div id="view-dashboard" class="view active">
+      <div class="grid" id="app">
+        <!-- left: quick add form -->
+        <form class="card" id="quickForm">
+          <div class="section-title">
+            <h2>Quick Add</h2>
+            <!-- gentle status text after save -->
+            <span class="mini" id="quickStatus" aria-live="polite"></span>
           </div>
-          <button type="button" class="x" aria-label="clear students" onclick="clearStudents()">✕</button>
-        </div>
 
-        <div class="actions">
-          <button class="btn" type="submit">Submit</button>
-        </div>
-      </form>
+          <div class="field">
+            <label class="label" for="quickNote">What would you like to add today?</label>
+            <textarea id="quickNote" placeholder="Observation, note, homework status, behavior, etc."></textarea>
+          </div>
 
-      <!-- Right: Class tiles -->
-      <section class="tiles">
-        <a class="tile-link" href="class-block2.html">
-          <article class="tile" style="background:var(--tile1)">
-            <h3>Intro<br>Physics<br>(Block 2)</h3>
-          </article>
-        </a>
-        <a class="tile-link" href="class-block4.html">
-          <article class="tile" style="background:var(--tile2)">
-            <h3>Intro<br>Physics<br>(Block 4)</h3>
-          </article>
-        </a>
-        <a class="tile-link" href="class-block5.html">
-          <article class="tile" style="background:var(--tile3)">
-            <h3>Modern<br>Physics<br>(Block 5)</h3>
-          </article>
-        </a>
-        <a class="tile-link" href="class-block6.html">
-          <article class="tile" style="background:var(--tile4)">
-            <h3>Modern<br>Physics<br>(Block 6)</h3>
-          </article>
-        </a>
+          <div class="field">
+            <label class="label" for="classSelect">Class</label>
+            <div class="row">
+              <select id="classSelect" aria-label="Choose class"></select>
+              <!-- scrolls to class tiles on the right -->
+              <button type="button" class="btn btn-outline" id="scrollToClasses">Classes</button>
+            </div>
+          </div>
+
+          <div class="field">
+            <span class="label">Student(s) in this class</span>
+            <!-- checkboxes populate from class roster -->
+            <div id="studentChecks" class="checks" aria-live="polite"></div>
+          </div>
+
+          <div class="actions">
+            <button class="btn" type="submit">Submit</button>
+            <button class="btn btn-outline" type="button" id="clearFormBtn">Clear</button>
+          </div>
+        </form>
+
+        <!-- right: class tiles (navigate + delete) -->
+        <section class="card" id="classesPanel">
+          <div class="section-title">
+            <h2>Classes</h2>
+            <button class="btn btn-outline" id="addClassBtn">+ New Class</button>
+          </div>
+          <div class="tiles" id="classTiles"></div>
+        </section>
+      </div>
+    </div>
+
+    <!-- class detail view -->
+    <div id="view-class" class="view">
+      <div class="topbar">
+        <div>
+          <h1 id="classTitle" style="font-size:36px;font-weight:800;margin:0 0 4px">Class</h1>
+          <div class="muted" id="subtitle">Class Page</div>
+        </div>
+        <!-- goes back without page reload -->
+        <a class="back" href="#/">← Back to Dashboard</a>
+      </div>
+
+      <!-- roster management -->
+      <section class="card">
+        <div class="section-title">
+          <h2>Roster</h2>
+          <div class="mini" id="rosterCount">0 students</div>
+        </div>
+        <!-- current roster as removable chips -->
+        <div class="field" id="rosterChips" style="display:flex;gap:8px;flex-wrap:wrap"></div>
+        <div class="field">
+          <label class="label" for="newStudent">Add Student</label>
+          <div class="row">
+            <input id="newStudent" placeholder="Full name" />
+            <button class="btn" id="addStudent">Add</button>
+          </div>
+          <p class="mini" style="margin-top:8px">Removing a student here removes them from this class only.</p>
+        </div>
+      </section>
+
+      <!-- add note for selected students -->
+      <section class="card">
+        <div class="section-title">
+          <h2>Add Note</h2>
+          <!-- gentle status text after save -->
+          <span class="mini" id="noteStatus" aria-live="polite"></span>
+        </div>
+        <div class="field">
+          <span class="label">Select Student(s)</span>
+          <!-- checkbox list (not a multi-select) -->
+          <div id="noteStudentChecks" class="checks" aria-live="polite"></div>
+
+          <label class="label" for="noteText" style="margin-top:12px">Note</label>
+          <textarea id="noteText" placeholder="Write a quick note…"></textarea>
+
+          <div class="row" style="margin-top:10px">
+            <button class="btn" id="saveNote">Submit</button>
+            <button class="btn btn-outline" id="clearNote">Clear</button>
+          </div>
+        </div>
+      </section>
+
+      <!-- recent notes for this class -->
+      <section class="card">
+        <div class="section-title">
+          <h2>Recent Notes</h2>
+          <button class="btn btn-outline" id="refresh">Refresh</button>
+        </div>
+        <div id="entries"></div>
       </section>
     </div>
   </div>
 
-  <script>
-    function clearClass(){ document.getElementById('classLabel').textContent='—'; }
-    function clearStudents(){ document.querySelectorAll('.checks input[type="checkbox"]').forEach(cb=>cb.checked=false); }
-  </script>
+  <!-- class tile template (no roster preview) -->
+  <template id="tileTemplate">
+    <a class="tile-link" href="#">
+      <article class="tile">
+        <!-- top-right tile actions -->
+        <div class="tile-actions">
+          <button class="icon-btn" title="Delete class" data-delete>🗑</button>
+        </div>
+        <div>
+          <h3></h3>
+          <small class="muted rosterCount"></small>
+        </div>
+      </article>
+    </a>
+  </template>
+
+ <script type="module" src="./js/app.js"></script>
 </body>
 </html>
