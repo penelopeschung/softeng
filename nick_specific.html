@@ -170,15 +170,17 @@
         <!-- goes back without page reload -->
         <a class="back" href="#/">← Back to Dashboard</a>
       </div>
-
-      <!-- roster management -->
+    
+      
+      <!-- updated roster management to include copy paste roster list and manual additions -->
       <section class="card">
         <div class="section-title">
           <h2>Roster</h2>
           <div class="mini" id="rosterCount">0 students</div>
         </div>
-        <!-- current roster as removable chips -->
+        
         <div class="field" id="rosterChips" style="display:flex;gap:8px;flex-wrap:wrap"></div>
+
         <div class="field">
           <label class="label" for="newStudent">Add Student</label>
           <div class="row">
@@ -186,6 +188,17 @@
             <button class="btn" id="addStudent">Add</button>
           </div>
           <p class="mini" style="margin-top:8px">Removing a student here removes them from this class only.</p>
+        </div>
+
+        <div class="hr"></div>
+
+        <div class="field">
+          <label class="label" for="newStudents">Add Students (Bulk)</label>
+          <textarea id="newStudents" placeholder="Paste a list of student names, one name per line."></textarea>
+          <div class="row" style="margin-top:10px">
+            <button class="btn" id="addStudentsBtn">Add Students from List</button>
+          </div>
+          <p class="mini" style="margin-top:8px">Names already in the roster will be skipped.</p>
         </div>
       </section>
 
@@ -285,6 +298,8 @@
   const rosterCount = document.getElementById('rosterCount');
   const newStudent = document.getElementById('newStudent');
   const addStudent = document.getElementById('addStudent');
+  const newStudents = document.getElementById('newStudents');
+  const addStudentsBtn = document.getElementById('addStudentsBtn');
   const noteStudentChecks = document.getElementById('noteStudentChecks'); // where checkboxes go
   const noteText = document.getElementById('noteText');
   const saveNote = document.getElementById('saveNote');
@@ -536,7 +551,46 @@
     renderRoster(cls);
     renderNoteStudentChecks(cls);
   });
+  
+  addStudentsBtn.addEventListener('click', () => {
+    const route = getRoute(); 
+    if (route.name !== 'class') return;
+    
+    const cls = state.classes.find(c => c.id === route.id); 
+    if (!cls) return;
 
+    // Get the value from the textarea and split it by new lines
+    const names = newStudents.value.split('\n');
+    
+    let addedCount = 0;
+    cls.roster = cls.roster || [];
+    state.students = state.students || [];
+
+    names.forEach(name => {
+      const val = name.trim(); // Clean up whitespace
+
+      // Only add if it's not an empty string and not already in the roster
+      if (val && !cls.roster.includes(val)) {
+        cls.roster.push(val);
+        addedCount++;
+
+        // Also add to the master student list if not already there
+        if (!state.students.includes(val)) {
+          state.students.push(val);
+        }
+      }
+    });
+
+    // Only save and re-render if we actually added someone
+    if (addedCount > 0) {
+      save(); // Use your existing 'save()' function
+      renderRoster(cls);
+      renderNoteStudentChecks(cls);
+    }
+
+    // Clear the textarea
+    newStudents.value = '';
+  });
   // save class note (checkbox selection)
   saveNote.addEventListener('click', ()=>{
     const route = getRoute(); if(route.name!=='class') return;
