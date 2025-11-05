@@ -203,6 +203,24 @@ exportBtn.addEventListener('click', ()=>{
   setTimeout(()=>URL.revokeObjectURL(url), 1000);
 });
 
+clearRosterBtn.addEventListener('click', () => {
+    const route = getRoute(); 
+    if (route.name !== 'class') return;
+    
+    const cls = state.classes.find(c => c.id === route.id); 
+    if (!cls) return;
+
+    // Ask for confirmation
+    if (confirm(`Are you sure you want to remove all ${cls.roster.length} students from this class?\n\nThis cannot be undone.`)) {
+      cls.roster = []; // Empty the roster
+      
+      save(); // <-- THIS IS THE CORRECTION. Use save(), not saveState(state).
+      
+      // Re-render the UI to show the empty roster
+      renderRoster(cls);
+      renderNoteStudentChecks(cls);
+    }
+  });
 // switch class in quick add
 classSelect.addEventListener('change', renderStudentChecks);
 
@@ -267,41 +285,43 @@ addStudent.addEventListener('click', () => {
 });
 
 // LISTENER 2: Bulk Student Add
-addStudentsBtn.addEventListener('click', () => {
-  const route = getRoute(); 
-  if (route.name !== 'class') return;
-  
-  const cls = state.classes.find(c => c.id === route.id); 
-  if (!cls) return;
+// add students from bulk list
+// add students from bulk list
+clearRosterBtn.addEventListener('click', () => {
+    console.log('Clear Roster button clicked.'); // 1. Did it fire?
 
-  const names = newStudents.value.split('\n');
-  
-  let addedCount = 0;
-  cls.roster = cls.roster || [];
-  state.students = state.students || [];
+    const route = getRoute(); 
+    if (route.name !== 'class') {
+      console.log('Not on a class page. Aborting.');
+      return;
+    }
+    
+    const cls = state.classes.find(c => c.id === route.id); 
+    if (!cls) {
+      console.log('Could not find class with id:', route.id);
+      return;
+    }
+    
+    console.log('Found class:', cls.name);
 
-  names.forEach(name => {
-    const val = name.trim(); 
+    // Ask for confirmation
+    if (confirm(`Are you sure you want to remove all ${cls.roster.length} students from this class?\n\nThis cannot be undone.`)) {
+      console.log('User confirmed deletion.');
+      cls.roster = []; // Empty the roster
+      console.log('Roster cleared in state object.');
 
-    if (val && !cls.roster.includes(val)) {
-      cls.roster.push(val);
-      addedCount++;
+      save(); // Save the change
+      console.log('State saved to localStorage.');
+      
+      // Re-render the UI to show the empty roster
+      renderRoster(cls);
+      renderNoteStudentChecks(cls);
+      console.log('UI re-rendered.');
 
-      if (!state.students.includes(val)) {
-        state.students.push(val);
-      }
+    } else {
+      console.log('User cancelled deletion.');
     }
   });
-
-  if (addedCount > 0) {
-    saveState(state); 
-    renderRoster(cls);
-    renderNoteStudentChecks(cls);
-  }
-
-  newStudents.value = '';
-});
-
 // save class note (checkbox selection)
 saveNote.addEventListener('click', ()=>{
   const route = getRoute(); if(route.name!=='class') return;
