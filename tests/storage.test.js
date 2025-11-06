@@ -1,6 +1,5 @@
-// Import the functions to test
+// import the functions to test
 import { loadState, defaultData } from '../js/storage.js';
-// We need to mock localStorage for Jest
 const localStorageMock = (function() {
   let store = {};
   return {
@@ -21,10 +20,10 @@ Object.defineProperty(global, 'localStorage', {
 });
 
 
-// Start the test suite
+// start the test suite
 describe('storage functions', () => {
 
-  // A simple test
+  //  simple test
   test('loadState should return default data if localStorage is empty', () => {
     localStorage.clear(); // Ensure storage is empty
     expect(loadState()).toEqual(defaultData);

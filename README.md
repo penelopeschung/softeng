@@ -33,7 +33,7 @@ Penelope Chung
 
 
 Tests:
-For the test suite for unit tests, I used jest. I only tested the new functions that I added: parse student names and clear all. 
-Then, I used cypress to do an end to end test simulating a user pasting in a roster from canvas and then clearing it. 
+For the test suite for unit tests, I used jest. I only tested the new functions that I added: parse student names and clear all. I added these tests within the storage.test.js and utils.test.js files. 
+Then, I used cypress to do an end to end test simulating a user pasting in a roster from canvas and then clearing it. I added a cypress folder and the e2e test that I ran is under the roster-workflow.cy.js file.
 
 
