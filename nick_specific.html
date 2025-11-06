@@ -465,57 +465,95 @@
     });
   }
 
-// function that allows you to parse through a complex canvas list copy and pasted as well as a simple list of names
-// ===== NEW PARSER FUNCTION (CANVAS-SPECIFIC) =====
+// ADDED PARSER FUNCTIONb
   /**
-   * Cleans up a pasted roster from Canvas.
-   * This version understands the specific jumbled line-break pattern.
+   * cleans up a list copy pasted from the canvas roster
+   * a line is a "name" if the *very next line* starts with it.
+   * also can take simple lists
+   * checks for names - > only a name if it has first and last name, no weird characters or symbols
    */
   function parseStudentNames(rawText) {
     const names = new Set();
-    const lines = rawText.split('\n');
+    const lines = rawText.split('\n')
+      .map(l => l.trim())
+      .filter(l => l.length > 0);
 
     if (lines.length === 0) {
       return [];
     }
 
-    // Heuristic: Is this a Canvas paste?
-    const isCanvasPaste = rawText.includes('Student') || rawText.includes('Teacher');
-
-    if (isCanvasPaste) {
+    // cehecks if something is actually a name
+    const isPlausibleName = (line) => {
+      if (!line) return false;
       
-      // 1. Get the first student (who is on their own line, no role)
-      const firstLine = lines[0].trim();
-      // Simple check to make sure it's a name and not "Dashboard"
-      if (firstLine.length > 0 && firstLine.split(' ').length >= 2 && firstLine.split(' ').length <= 4) {
-        names.add(firstLine);
+      const trimmedLine = line.trim();
+      const wordCount = trimmedLine.split(' ').length;
+
+      // checks 2-5 words in name, also has to have proper capitalization
+      if (
+        wordCount < 2 ||
+        wordCount > 5 ||
+        !/^[A-Z]/.test(trimmedLine) ||
+        trimmedLine.startsWith('Student') ||
+        trimmedLine.startsWith('Teacher')
+      ) {
+        return false;
+      }
+      
+      // no numbers/weird characters
+      if (/\d/.test(trimmedLine)) {
+        return false;
+      }
+      if (/[@:/]/.test(trimmedLine)) {
+        return false;
+      }
+      // only letters and spaces and hyphen ' -
+      if (!/^[A-Za-z' -]+$/.test(trimmedLine)) {
+        return false;
       }
 
-      // 2. Get all other students. 
-      // The pattern is "Student[Name]" or "Teacher[Name]" at the start of a line.
-      
-      // Regex: ^(Student|Teacher) - Must start with "Student" or "Teacher"
-      //        ([A-Z][A-Za-z-' ]+) - Capture group 1: The name, which must start with a capital.
-      const roleRegex = /^(Student|Teacher)([A-Z][A-Za-z-' ]+)/;
+      return true;
+    };
 
-      lines.forEach(line => {
-        const match = line.trim().match(roleRegex);
-        if (match && match[2]) {
-          // match[2] is the captured name (e.g., "Grace Bishara")
-          names.add(match[2].trim());
+
+
+    for (let i = 0; i < lines.length; i++) {
+      const currentLine = lines[i];
+      const nextLine = lines[i + 1]; 
+
+      // -----
+      // using pattern of canvas roster where the name is repeated 2x
+      if (nextLine && nextLine.startsWith(currentLine) && nextLine !== currentLine) {
+        
+
+        if (isPlausibleName(currentLine)) {
+          names.add(currentLine);
         }
-      });
 
-      // 3. Return the clean list if we found any
-      if (names.size > 0) {
-        return Array.from(names);
+        i++; 
+        continue;
       }
+
+
+      const roleRegex = /^(Student|Teacher)([A-Z][A-Za-z-' ]+)/;
+      const roleMatch = currentLine.match(roleRegex);
+      if (roleMatch && roleMatch[2]) {
+        const extractedName = roleMatch[2].trim();
+        if (isPlausibleName(extractedName)) { 
+            names.add(extractedName);
+        }
+        continue; 
+      }
+      
+
+      if (isPlausibleName(currentLine)) {
+        names.add(currentLine);
+      }
+      
+
     }
 
-    // 4. Fallback: If not a Canvas paste, treat as a simple list
-    return rawText.split('\n')
-      .map(name => name.trim())
-      .filter(name => name.length > 0);
+    return Array.from(names);
   }
 
 
@@ -606,7 +644,7 @@
     renderNoteStudentChecks(cls);
   });
 
-// ===== UPDATED: Bulk Student Add (uses parser) =====
+// ADDED add multiple students text area button
   addStudentsBtn.addEventListener('click', () => {
     const route = getRoute(); 
     if (route.name !== 'class') return;
@@ -614,17 +652,13 @@
     const cls = state.classes.find(c => c.id === route.id); 
     if (!cls) return;
 
-    // 1. Get the raw text from the textarea
+
     const rawText = newStudents.value;
-    
-    // 2. Call our new parser function to get a clean list
     const names = parseStudentNames(rawText);
     
     let addedCount = 0;
     cls.roster = cls.roster || [];
     state.students = state.students || [];
-
-    // Loop over the *clean* list from the parser.
     names.forEach(name => {
       const val = name.trim();
 
@@ -638,18 +672,17 @@
       }
     });
 
-    // Only save if we added someone
+    // only save if added someone
     if (addedCount > 0) {
       save(); 
       renderRoster(cls);
       renderNoteStudentChecks(cls);
     }
-
-    // Clear the textarea
+// clear text area
     newStudents.value = '';
   });
 
-  // ===== NEWLY ADDED: Clear Roster Button =====
+  // ===== ADDED clear roster button
   clearRosterBtn.addEventListener('click', () => {
     const route = getRoute(); 
     if (route.name !== 'class') return;
@@ -657,12 +690,11 @@
     const cls = state.classes.find(c => c.id === route.id); 
     if (!cls) return;
 
-    // Ask for confirmation
+    // ask for confirmation
     if (confirm(`Are you sure you want to remove all ${cls.roster.length} students from this class?\n\nThis cannot be undone.`)) {
       cls.roster = []; // Empty the roster
       save(); // Save the change
       
-      // Re-render the UI to show the empty roster
       renderRoster(cls);
       renderNoteStudentChecks(cls);
     }

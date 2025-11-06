@@ -1,8 +1,7 @@
 // ===== IMPORTS =====
 // We import all helpers from our other modules
-import { cid, fmtDate, escapeHtml, csvEscape } from './utils.js';
+import { cid, fmtDate, escapeHtml, csvEscape, parseStudentNames,clearRoster } from './utils.js';
 import { loadState, saveState } from './storage.js';
-
 // ===== STATE =====
 // Load the state ONCE using the imported function
 let state = loadState(); 
@@ -25,6 +24,7 @@ const classTiles = document.getElementById('classTiles');
 const tileTemplate = document.getElementById('tileTemplate');
 
 const classView = document.getElementById('view-class');
+
 const classTitle = document.getElementById('classTitle');
 const subtitle = document.getElementById('subtitle');
 const rosterChips = document.getElementById('rosterChips');
@@ -33,6 +33,7 @@ const newStudent = document.getElementById('newStudent');
 const addStudent = document.getElementById('addStudent');
 const newStudents = document.getElementById('newStudents');
 const addStudentsBtn = document.getElementById('addStudentsBtn');
+const clearRosterBtn = document.getElementById('clearRosterBtn');
 const noteStudentChecks = document.getElementById('noteStudentChecks');
 const noteText = document.getElementById('noteText');
 const saveNote = document.getElementById('saveNote');
@@ -172,191 +173,200 @@ function renderEntries(cls){
 }
 
 // ===== EVENTS (UI ACTIONS) =====
+// These events are "guarded" to prevent crashes when the element isn't on the page.
 
-// rename the user
-editNameBtn.addEventListener('click', ()=>{
-  const name = prompt('Enter your display name:', state.userName || '');
-  if(name!==null){ 
-    state.userName = name.trim() || 'Teacher'; 
-    userNameEl.textContent = state.userName; 
-    saveState(state); 
-  }
-});
+// --- Dashboard Events ---
 
-// export notes as csv
-exportBtn.addEventListener('click', ()=>{
-  const rows = [];
-  rows.push(['timestamp','date','classId','className','block','students','note']);
-  (state.quickAdds||[]).forEach(e=>{
-    const cls = (state.classes||[]).find(c=>c.id===e.classId) || {};
-    rows.push([
-      e.ts, new Date(e.ts).toISOString(), e.classId || '',
-      cls.name || '', cls.block || '',
-      (e.students||[]).join('; '), e.note || ''
-    ]);
+if (editNameBtn) {
+  editNameBtn.addEventListener('click', ()=>{
+    const name = prompt('Enter your display name:', state.userName || '');
+    if(name!==null){ 
+      state.userName = name.trim() || 'Teacher'; 
+      userNameEl.textContent = state.userName; 
+      saveState(state); 
+    }
   });
-  const csv = rows.map(r=>r.map(csvEscape).join(',')).join('\n');
-  const blob = new Blob([csv], {type:'text/csv;charset=utf-8;'});
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url; a.download = 'notes.csv'; a.click();
-  setTimeout(()=>URL.revokeObjectURL(url), 1000);
-});
+}
 
-clearRosterBtn.addEventListener('click', () => {
+if (exportBtn) {
+  exportBtn.addEventListener('click', ()=>{
+    const rows = [];
+    rows.push(['timestamp','date','classId','className','block','students','note']);
+    (state.quickAdds||[]).forEach(e=>{
+      const cls = (state.classes||[]).find(c=>c.id===e.classId) || {};
+      rows.push([
+        e.ts, new Date(e.ts).toISOString(), e.classId || '',
+        cls.name || '', cls.block || '',
+        (e.students||[]).join('; '), e.note || ''
+      ]);
+    });
+    const csv = rows.map(r=>r.map(csvEscape).join(',')).join('\n');
+    const blob = new Blob([csv], {type:'text/csv;charset=utf-8;'});
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url; a.download = 'notes.csv'; a.click();
+    setTimeout(()=>URL.revokeObjectURL(url), 1000);
+  });
+}
+
+if (classSelect) {
+  classSelect.addEventListener('change', renderStudentChecks);
+}
+
+if (addClassBtn) {
+  addClassBtn.addEventListener('click', ()=>{
+    const name = prompt('Class name (e.g., Intro Physics)'); if(!name) return;
+    const block = prompt('Block/Section (e.g., Block 4)') || '';
+    const colors = ['var(--tile1)','var(--tile2)','var(--tile3)','var(--tile4)'];
+    state.classes.push({ id: cid(), name: name.trim(), block: block.trim(), color: colors[state.classes.length%colors.length], roster: [] });
+    saveState(state);
+    renderDashboard();
+  });
+}
+
+if (clearFormBtn) {
+  clearFormBtn.addEventListener('click', ()=>{
+    document.querySelectorAll('#studentChecks input[type="checkbox"]').forEach(cb=>cb.checked=false);
+    quickNote.value='';
+    quickStatus.textContent='';
+  });
+}
+
+if (quickForm) {
+  quickForm.addEventListener('submit', (e)=>{
+    e.preventDefault();
+    const c = currentClass();
+    if(!c){ return; }
+    const chosen = Array.from(studentChecks.querySelectorAll('input:checked')).map(cb=>cb.nextElementSibling.textContent);
+    const note = quickNote.value.trim();
+    state.quickAdds.unshift({ id: cid(), ts: Date.now(), classId: c.id, students: chosen, note });
+    saveState(state);
+    quickNote.value='';
+    document.querySelectorAll('#studentChecks input[type="checkbox"]').forEach(cb=>cb.checked=false);
+    quickStatus.textContent = 'saved';
+    setTimeout(()=> quickStatus.textContent = '', 1500);
+  });
+}
+
+if (scrollToClasses) {
+  scrollToClasses.addEventListener('click', ()=>{
+    document.getElementById('classesPanel').scrollIntoView({behavior:'smooth', block:'start'});
+  });
+}
+
+
+// --- Class Page Events ---
+
+if (clearRosterBtn) {
+  clearRosterBtn.addEventListener('click', () => {
     const route = getRoute(); 
     if (route.name !== 'class') return;
+    const cls = state.classes.find(c => c.id === route.id); 
+    if (!cls) return;
     
+    // Use the imported clearRoster function
+    if (confirm(`Are you sure you want to remove all ${cls.roster.length} students from this class?\n\nThis cannot be undone.`)) {
+      clearRoster(cls); // <-- This is your unit-tested logic!
+      saveState(state);  // <-- Use the imported saveState
+      renderRoster(cls);
+      renderNoteStudentChecks(cls);
+    }
+  });
+}
+
+if (addStudent) {
+  addStudent.addEventListener('click', () => {
+    const route = getRoute(); 
+    if (route.name !== 'class') return;
+    const cls = state.classes.find(c => c.id === route.id); 
+    if (!cls) return;
+    
+    const val = newStudent.value.trim();
+    if (!val) return; 
+
+    cls.roster = cls.roster || [];
+    state.students = state.students || [];
+
+    if (val && !cls.roster.includes(val)) {
+      cls.roster.push(val);
+      if (!state.students.includes(val)) {
+        state.students.push(val);
+      }
+      saveState(state); 
+      renderRoster(cls);
+      renderNoteStudentChecks(cls);
+    }
+    newStudent.value = '';
+    newStudent.focus();
+  });
+}
+
+if (addStudentsBtn) {
+  addStudentsBtn.addEventListener('click', () => {
+    const route = getRoute(); 
+    if (route.name !== 'class') return;
     const cls = state.classes.find(c => c.id === route.id); 
     if (!cls) return;
 
-    // Ask for confirmation
-    if (confirm(`Are you sure you want to remove all ${cls.roster.length} students from this class?\n\nThis cannot be undone.`)) {
-      cls.roster = []; // Empty the roster
-      
-      save(); // <-- THIS IS THE CORRECTION. Use save(), not saveState(state).
-      
-      // Re-render the UI to show the empty roster
+    const rawText = newStudents.value;
+    const names = parseStudentNames(rawText); // <-- Your unit-tested logic
+    let addedCount = 0;
+    
+    cls.roster = cls.roster || [];
+    state.students = state.students || [];
+
+    names.forEach(name => {
+      if (name && !cls.roster.includes(name)) {
+        cls.roster.push(name);
+        if (!state.students.includes(name)) {
+          state.students.push(name);
+        }
+        addedCount++;
+      }
+    });
+
+    if (addedCount > 0) {
+      saveState(state);
       renderRoster(cls);
       renderNoteStudentChecks(cls);
     }
+    newStudents.value = '';
   });
-// switch class in quick add
-classSelect.addEventListener('change', renderStudentChecks);
+}
 
-// add a new class quickly
-addClassBtn.addEventListener('click', ()=>{
-  const name = prompt('Class name (e.g., Intro Physics)'); if(!name) return;
-  const block = prompt('Block/Section (e.g., Block 4)') || '';
-  const colors = ['var(--tile1)','var(--tile2)','var(--tile3)','var(--tile4)'];
-  state.classes.push({ id: cid(), name: name.trim(), block: block.trim(), color: colors[state.classes.length%colors.length], roster: [] });
-  saveState(state);
-  renderDashboard();
-});
+if (saveNote) {
+  saveNote.addEventListener('click', ()=>{
+    const route = getRoute(); if(route.name!=='class') return;
+    const cls = state.classes.find(c=>c.id===route.id); if(!cls) return;
+    const chosen = Array.from(noteStudentChecks.querySelectorAll('input:checked')).map(cb=>cb.nextElementSibling.textContent);
+    const note = noteText.value.trim();
+    state.quickAdds.unshift({ id: cid(), ts: Date.now(), classId: cls.id, students: chosen, note });
+    saveState(state);
+    noteText.value = '';
+    noteStudentChecks.querySelectorAll('input[type="checkbox"]').forEach(cb=>cb.checked=false);
+    renderEntries(cls);
+    noteStatus.textContent = 'saved';
+    setTimeout(()=> noteStatus.textContent = '', 1500);
+  });
+}
 
-// clear the quick add form
-clearFormBtn.addEventListener('click', ()=>{
-  document.querySelectorAll('#studentChecks input[type="checkbox"]').forEach(cb=>cb.checked=false);
-  quickNote.value='';
-  quickStatus.textContent='';
-});
+if (clearNote) {
+  clearNote.addEventListener('click', ()=>{
+    noteText.value='';
+    noteStudentChecks.querySelectorAll('input[type="checkbox"]').forEach(cb=>cb.checked=false);
+    noteStatus.textContent='';
+  });
+}
 
-// save quick note
-quickForm.addEventListener('submit', (e)=>{
-  e.preventDefault();
-  const c = currentClass();
-  if(!c){ return; }
-  const chosen = Array.from(studentChecks.querySelectorAll('input:checked')).map(cb=>cb.nextElementSibling.textContent);
-  const note = quickNote.value.trim();
-  state.quickAdds.unshift({ id: cid(), ts: Date.now(), classId: c.id, students: chosen, note });
-  saveState(state);
-  quickNote.value='';
-  document.querySelectorAll('#studentChecks input[type="checkbox"]').forEach(cb=>cb.checked=false);
-  quickStatus.textContent = 'saved';
-  setTimeout(()=> quickStatus.textContent = '', 1500);
-});
-
-// LISTENER 1: Single Student Add
-addStudent.addEventListener('click', () => {
-  const route = getRoute(); 
-  if (route.name !== 'class') return;
-  
-  const cls = state.classes.find(c => c.id === route.id); 
-  if (!cls) return;
-
-  const val = newStudent.value.trim();
-  if (!val) return; 
-
-  cls.roster = cls.roster || [];
-  state.students = state.students || [];
-
-  if (val && !cls.roster.includes(val)) {
-    cls.roster.push(val);
-    if (!state.students.includes(val)) {
-      state.students.push(val);
-    }
-    saveState(state); 
-    renderRoster(cls);
-    renderNoteStudentChecks(cls);
-  }
-
-  newStudent.value = '';
-  newStudent.focus();
-});
-
-// LISTENER 2: Bulk Student Add
-// add students from bulk list
-// add students from bulk list
-clearRosterBtn.addEventListener('click', () => {
-    console.log('Clear Roster button clicked.'); // 1. Did it fire?
-
-    const route = getRoute(); 
-    if (route.name !== 'class') {
-      console.log('Not on a class page. Aborting.');
-      return;
-    }
-    
-    const cls = state.classes.find(c => c.id === route.id); 
-    if (!cls) {
-      console.log('Could not find class with id:', route.id);
-      return;
-    }
-    
-    console.log('Found class:', cls.name);
-
-    // Ask for confirmation
-    if (confirm(`Are you sure you want to remove all ${cls.roster.length} students from this class?\n\nThis cannot be undone.`)) {
-      console.log('User confirmed deletion.');
-      cls.roster = []; // Empty the roster
-      console.log('Roster cleared in state object.');
-
-      save(); // Save the change
-      console.log('State saved to localStorage.');
-      
-      // Re-render the UI to show the empty roster
-      renderRoster(cls);
-      renderNoteStudentChecks(cls);
-      console.log('UI re-rendered.');
-
-    } else {
-      console.log('User cancelled deletion.');
+if (refresh) {
+  refresh.addEventListener('click', ()=>{
+    const route = getRoute();
+    if(route.name==='class'){
+      const cls = state.classes.find(c=>c.id===route.id);
+      if(cls) renderEntries(cls);
     }
   });
-// save class note (checkbox selection)
-saveNote.addEventListener('click', ()=>{
-  const route = getRoute(); if(route.name!=='class') return;
-  const cls = state.classes.find(c=>c.id===route.id); if(!cls) return;
-  const chosen = Array.from(noteStudentChecks.querySelectorAll('input:checked')).map(cb=>cb.nextElementSibling.textContent);
-  const note = noteText.value.trim();
-  state.quickAdds.unshift({ id: cid(), ts: Date.now(), classId: cls.id, students: chosen, note });
-  saveState(state);
-  noteText.value = '';
-  noteStudentChecks.querySelectorAll('input[type="checkbox"]').forEach(cb=>cb.checked=false);
-  renderEntries(cls);
-  noteStatus.textContent = 'saved';
-  setTimeout(()=> noteStatus.textContent = '', 1500);
-});
-
-// clear class note form
-clearNote.addEventListener('click', ()=>{
-  noteText.value='';
-  noteStudentChecks.querySelectorAll('input[type="checkbox"]').forEach(cb=>cb.checked=false);
-  noteStatus.textContent='';
-});
-
-// manual refresh of recent notes list
-refresh.addEventListener('click', ()=>{
-  const route = getRoute();
-  if(route.name==='class'){
-    const cls = state.classes.find(c=>c.id===route.id);
-    if(cls) renderEntries(cls);
-  }
-});
-
-// scroll shortcut
-scrollToClasses.addEventListener('click', ()=>{
-  document.getElementById('classesPanel').scrollIntoView({behavior:'smooth', block:'start'});
-});
+}
 
 // ===== START THE APP =====
 function routeNow(){
